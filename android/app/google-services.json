@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "868242363057",
+    "project_id": "madfinalweekpro",
+    "storage_bucket": "madfinalweekpro.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:868242363057:android:ed14639f4c49ab57efc890",
+        "android_client_info": {
+          "package_name": "com.example.finalwe"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByeZesB0a4nGyVbpBbECWLa4HBzB8K37A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:868242363057:android:48d27a617835f499efc890",
+        "android_client_info": {
+          "package_name": "com.example.finalweekpro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyByeZesB0a4nGyVbpBbECWLa4HBzB8K37A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
