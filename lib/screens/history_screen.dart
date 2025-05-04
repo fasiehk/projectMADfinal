@@ -9,7 +9,7 @@ class HistoryScreen extends StatefulWidget {
   State<HistoryScreen> createState() => _HistoryScreenState();
 }
 
-class _HistoryScreenState extends State<HistoryScreen> {
+class _HistoryScreenState extends State<HistoryScreen> with AutomaticKeepAliveClientMixin {
   List<Book> _books = [];
   bool _isLoading = true;
 
@@ -38,6 +38,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     return Scaffold(
       appBar: AppBar(
         title: const Text('History'),
@@ -67,4 +68,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
     );
   }
+
+  @override
+  bool get wantKeepAlive => true; // Retain the state of this screen
 }
