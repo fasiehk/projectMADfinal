@@ -3,6 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore for fetching username
 import 'login_page.dart';
 import 'screens/update_password_screen.dart';
+import 'terms_and_conditions_screen.dart'; // Import Terms and Conditions screen
+import 'about_us_screen.dart'; // Import About Us screen
+import 'package:provider/provider.dart';
+import 'providers/saved_books_provider.dart'; // Import SavedBooksProvider
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -117,21 +121,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  void _navigateToTermsAndConditions(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const TermsAndConditionsScreen()),
+    );
+  }
+
+  void _navigateToAboutUs(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AboutUsScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
     final String userEmail = user?.email ?? "No Email";
+    final savedBooksProvider = Provider.of<SavedBooksProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
         backgroundColor: Colors.deepPurple,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => _logout(context),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -202,6 +215,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
             const Divider(thickness: 1, color: Colors.grey),
+            // Total Saved Books
+            ListTile(
+              leading: const Icon(Icons.book, color: Colors.deepPurple),
+              title: const Text('Total Saved Books'),
+              trailing: Text(
+                '${savedBooksProvider.savedBooks.length}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.deepPurple,
+                ),
+              ),
+            ),
             // Update Password Option
             ListTile(
               leading: const Icon(Icons.lock, color: Colors.deepPurple),
@@ -215,6 +241,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
               title: const Text('Forgot Password'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () => _sendPasswordResetEmail(context),
+            ),
+            const SizedBox(height: 20),
+            // Information Section Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                children: const [
+                  Text(
+                    "Information",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.deepPurple,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(thickness: 1, color: Colors.grey),
+            // Terms and Conditions Option
+            ListTile(
+              leading: const Icon(Icons.description, color: Colors.deepPurple),
+              title: const Text('Terms and Conditions'),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () => _navigateToTermsAndConditions(context),
+            ),
+            // About Us Option
+            ListTile(
+              leading: const Icon(Icons.info, color: Colors.deepPurple),
+              title: const Text('About Us'),
+              trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+              onTap: () => _navigateToAboutUs(context),
             ),
             const SizedBox(height: 20),
             // Security Section Header
