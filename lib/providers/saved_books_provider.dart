@@ -89,12 +89,15 @@ class SavedBooksProvider with ChangeNotifier {
     }
 
     try {
-      print("Removing book with key: $bookKey for user: ${user.uid}");
+      // Sanitize the key to use only the last segment as the document ID
+      final sanitizedKey = bookKey.split('/').last;
+
+      print("Removing book with sanitized key: $sanitizedKey for user: ${user.uid}");
       await _firestore
           .collection('users')
           .doc(user.uid)
           .collection('saved_books')
-          .doc(bookKey)
+          .doc(sanitizedKey) // Use sanitized key as the document ID
           .delete();
 
       _savedBooks.removeWhere((book) => book.key == bookKey);
