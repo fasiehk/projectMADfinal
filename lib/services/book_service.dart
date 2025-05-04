@@ -6,12 +6,14 @@ class Book {
   final String author;
   final String key;
   final int? coverId;
+  final String? olid; // OpenLibrary ID
 
   Book({
     required this.title,
     required this.author,
     required this.key,
     this.coverId,
+    this.olid,
   });
 
   factory Book.fromJson(Map<String, dynamic> json) {
@@ -20,8 +22,11 @@ class Book {
       author: (json['author_name'] != null && json['author_name'].isNotEmpty)
           ? json['author_name'][0]
           : 'Unknown Author',
-      key: json['key'] ?? '',
+      key: json['key'] ?? '', // Ensure the full key is used
       coverId: json['cover_i'],
+      olid: (json['edition_key'] != null && json['edition_key'].isNotEmpty)
+          ? json['edition_key'][0]
+          : null,
     );
   }
 }

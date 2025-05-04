@@ -91,6 +91,7 @@ class _SavedBooksScreenState extends State<SavedBooksScreen> {
                   coverId: book.coverId,
                   bookKey: book.key,
                   isInSavedBooksScreen: true, // Pass true for SavedBooksScreen
+                  olid: book.olid, // Ensure the OLID is passed correctly
                 );
               },
             ),

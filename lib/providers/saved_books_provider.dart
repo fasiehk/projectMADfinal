@@ -24,16 +24,19 @@ class SavedBooksProvider with ChangeNotifier {
           .collection('saved_books')
           .get();
 
-      final fetchedBooks = snapshot.docs.map((doc) => Book(
-            title: doc['title'] ?? '',
-            author: doc['author'] ?? '',
-            key: doc['key'] ?? '',
-            coverId: doc['coverId'],
-          ));
+      final fetchedBooks = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return Book(
+          title: data['title'] ?? 'Unknown Title',
+          author: data['author'] ?? 'Unknown Author',
+          key: data['key'] ?? '',
+          coverId: data['coverId'],
+          olid: data['olid'] ?? data['key'], // Use `key` as fallback for `olid`
+        );
+      }).toList(); // Convert to List<Book>
 
-      // Avoid duplication by clearing the list and adding only unique books
       _savedBooks.clear();
-      _savedBooks.addAll(fetchedBooks);
+      _savedBooks.addAll(fetchedBooks); // Add fetched books to the list
       print("Fetched ${_savedBooks.length} saved books.");
       notifyListeners();
     } catch (e) {
@@ -49,20 +52,23 @@ class SavedBooksProvider with ChangeNotifier {
     }
 
     try {
-      print("Saving book with key: ${book.key} for user: ${user.uid}");
+      // Sanitize the key to use only the last segment as the document ID
+      final sanitizedKey = book.key.split('/').last;
+
+      print("Saving book with sanitized key: $sanitizedKey for user: ${user.uid}");
       await _firestore
           .collection('users')
           .doc(user.uid)
           .collection('saved_books')
-          .doc(book.key)
+          .doc(sanitizedKey) // Use sanitized key as the document ID
           .set({
         'title': book.title,
         'author': book.author,
-        'key': book.key,
+        'key': book.key, // Save the full key for later use
         'coverId': book.coverId,
+        'olid': book.olid, // Ensure the OLID is saved
       });
 
-      // Add the book to the list only if it doesn't already exist
       if (!_savedBooks.any((savedBook) => savedBook.key == book.key)) {
         _savedBooks.add(book);
         print("Book saved successfully.");

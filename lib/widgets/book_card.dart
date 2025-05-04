@@ -2,13 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/book_service.dart';
 import '../providers/saved_books_provider.dart';
+import '../screens/book_details_screen.dart';
 
-class BookCard extends StatelessWidget {
+class BookCard extends StatefulWidget {
   final String title;
   final String author;
   final int? coverId;
   final String bookKey;
-  final bool isInSavedBooksScreen; // Add a flag to differentiate screens
+  final String? olid;
+  final bool isInSavedBooksScreen;
 
   const BookCard({
     super.key,
@@ -16,64 +18,127 @@ class BookCard extends StatelessWidget {
     required this.author,
     this.coverId,
     required this.bookKey,
-    this.isInSavedBooksScreen = false, // Default to false for ExploreScreen
+    this.olid,
+    this.isInSavedBooksScreen = false,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final savedBooksProvider = Provider.of<SavedBooksProvider>(context);
+  State<BookCard> createState() => _BookCardState();
+}
 
-    final isSaved = savedBooksProvider.savedBooks.any((book) => book.key == bookKey);
+class _BookCardState extends State<BookCard> {
+  bool _isLoading = false;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: ListTile(
-        leading: coverId != null
-            ? Image.network(
-                'https://covers.openlibrary.org/b/id/$coverId-M.jpg',
-                width: 50,
-                height: 50,
-                fit: BoxFit.cover,
-              )
-            : const Icon(Icons.book, size: 50),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(author),
-        trailing: IconButton(
-          icon: Icon(isSaved ? Icons.bookmark_remove : Icons.bookmark_add),
-          onPressed: () async {
-            try {
-              if (isInSavedBooksScreen) {
-                // Directly remove the book if in SavedBooksScreen
-                await savedBooksProvider.removeBook(bookKey);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Book removed successfully!')),
-                );
-              } else if (isSaved) {
-                // Show error message if the book is already saved
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Book already exists in saved books!')),
-                );
-              } else {
-                // Save the book
-                final sanitizedKey = bookKey.split('/').last;
-                final book = Book(
-                  title: title,
-                  author: author,
-                  key: sanitizedKey, // Use sanitized key
-                  coverId: coverId,
-                );
-                await savedBooksProvider.saveBook(book);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Book saved successfully!')),
-                );
-              }
-            } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Failed to update book: $e')),
-              );
-            }
-          },
+  Future<void> _navigateToDetails(BuildContext context) async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      String? resolvedOlid = widget.olid;
+
+      // If the OLID is missing, fetch it in real-time
+      if (resolvedOlid == null || resolvedOlid.isEmpty) {
+        final savedBooksProvider = Provider.of<SavedBooksProvider>(context, listen: false);
+        final book = savedBooksProvider.savedBooks.firstWhere(
+          (b) => b.key == widget.bookKey,
+          orElse: () => Book(
+            title: widget.title,
+            author: widget.author,
+            key: widget.bookKey,
+            coverId: widget.coverId,
+            olid: null,
+          ),
+        );
+        resolvedOlid = book.olid;
+      }
+
+      // Navigate to the BookDetailsScreen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BookDetailsScreen(
+            title: widget.title,
+            author: widget.author,
+            coverId: widget.coverId,
+            olid: resolvedOlid,
+          ),
         ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load book details: $e')),
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _navigateToDetails(context),
+      child: Stack(
+        children: [
+          Card(
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: ListTile(
+              leading: widget.coverId != null
+                  ? Image.network(
+                      'https://covers.openlibrary.org/b/id/${widget.coverId}-M.jpg',
+                      width: 50,
+                      height: 50,
+                      fit: BoxFit.cover,
+                    )
+                  : const Icon(Icons.book, size: 50),
+              title: Text(widget.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              subtitle: Text(widget.author),
+              trailing: IconButton(
+                icon: Icon(
+                  widget.isInSavedBooksScreen ? Icons.bookmark_remove : Icons.bookmark_add,
+                ),
+                onPressed: () async {
+                  try {
+                    final savedBooksProvider = Provider.of<SavedBooksProvider>(context, listen: false);
+                    if (widget.isInSavedBooksScreen) {
+                      await savedBooksProvider.removeBook(widget.bookKey);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Book removed successfully!')),
+                      );
+                    } else {
+                      final book = Book(
+                        title: widget.title,
+                        author: widget.author,
+                        key: widget.bookKey,
+                        coverId: widget.coverId,
+                        olid: widget.olid,
+                      );
+                      await savedBooksProvider.saveBook(book);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Book saved successfully!')),
+                      );
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Failed to update book: $e')),
+                    );
+                  }
+                },
+              ),
+            ),
+          ),
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+                child: const Center(
+                  child: CircularProgressIndicator(),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

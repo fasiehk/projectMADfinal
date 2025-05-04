@@ -114,6 +114,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                     author: book.author,
                     coverId: book.coverId,
                     bookKey: book.key, // Pass the book key
+                    olid: book.olid, // Pass the OLID if available
                   );
                 },
               ),
