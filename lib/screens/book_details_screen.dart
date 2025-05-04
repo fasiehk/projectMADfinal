@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:url_launcher/url_launcher.dart'; // Import url_launcher
+import 'package:url_launcher/url_launcher.dart';
+import 'package:provider/provider.dart';
+import '../providers/saved_books_provider.dart';
+import '../services/book_service.dart';
 
 class BookDetailsScreen extends StatefulWidget {
   final String title;
-  final String author;
+  String author;
   final int? coverId;
   final String? olid;
 
-  const BookDetailsScreen({
+   BookDetailsScreen({
     super.key,
     required this.title,
     required this.author,
@@ -39,8 +42,13 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     }
   }
 
-  Future<void> _fetchBookDetails(String olid) async {
-    final url = Uri.parse('https://openlibrary.org/books/$olid.json');
+  Future<void> _fetchBookDetails(String olidOrKey) async {
+    // Sanitize the OLID or key to ensure it is valid
+    final sanitizedId = olidOrKey.startsWith('/works/')
+        ? olidOrKey.replaceFirst('/works/', '')
+        : olidOrKey;
+
+    final url = Uri.parse('https://openlibrary.org/books/$sanitizedId.json'); // Use the sanitized ID
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -55,6 +63,16 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           _publishers = (data['publishers'] as List<dynamic>?)
               ?.map((publisher) => publisher.toString())
               .join(', ');
+
+          // Parse authors correctly
+          if (data['authors'] != null && data['authors'] is List) {
+            final authors = data['authors'] as List;
+            widget.author = authors.isNotEmpty
+                ? authors.map((author) => author['name']).join(', ')
+                : 'Unknown Author';
+          } else {
+            widget.author = 'Unknown Author';
+          }
         });
       } else {
         print("Failed to fetch book details: ${response.statusCode}");
@@ -94,6 +112,9 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final savedBooksProvider = Provider.of<SavedBooksProvider>(context);
+    final isSaved = savedBooksProvider.savedBooks.any((book) => book.olid == widget.olid);
+
     final bookUrl = widget.olid != null
         ? 'https://openlibrary.org/books/${widget.olid}'
         : null;
@@ -102,6 +123,31 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       appBar: AppBar(
         title: const Text('Book Details'),
         backgroundColor: Colors.deepPurple,
+        actions: [
+          IconButton(
+            icon: Icon(isSaved ? Icons.bookmark_remove : Icons.bookmark_add),
+            onPressed: () async {
+              if (isSaved) {
+                await savedBooksProvider.removeBook(widget.olid!);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Book removed from saved list')),
+                );
+              } else {
+                final book = Book(
+                  title: widget.title,
+                  author: widget.author,
+                  key: widget.olid!,
+                  coverId: widget.coverId,
+                  olid: widget.olid,
+                );
+                await savedBooksProvider.saveBook(book);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Book saved successfully')),
+                );
+              }
+            },
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())

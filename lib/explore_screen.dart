@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:finalwe/services/book_service.dart';
 import 'package:finalwe/widgets/book_card.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:finalwe/screens/book_details_screen.dart'; // Import BookDetailsScreen
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -63,6 +66,32 @@ class _ExploreScreenState extends State<ExploreScreen> {
     }
   }
 
+  Future<Book?> _fetchBookDetails(String bookKey) async {
+    final url = Uri.parse('https://openlibrary.org/works/$bookKey.json');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return Book(
+          title: data['title'] ?? 'Unknown Title',
+          author: (data['authors'] != null && data['authors'].isNotEmpty)
+              ? data['authors'][0]['name']
+              : 'Unknown Author',
+          key: bookKey,
+          coverId: data['covers'] != null && data['covers'].isNotEmpty
+              ? data['covers'][0]
+              : null,
+          olid: bookKey, // Use the book key as the OLID
+        );
+      } else {
+        print("Failed to fetch book details: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error fetching book details: $e");
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -109,12 +138,34 @@ class _ExploreScreenState extends State<ExploreScreen> {
                 itemCount: _books.length,
                 itemBuilder: (context, index) {
                   final book = _books[index];
-                  return BookCard(
-                    title: book.title,
-                    author: book.author,
-                    coverId: book.coverId,
-                    bookKey: book.key, // Pass the book key
-                    olid: book.olid, // Pass the OLID if available
+                  return GestureDetector(
+                    onTap: () async {
+                      final bookDetails = await _fetchBookDetails(book.key);
+                      if (bookDetails != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => BookDetailsScreen(
+                              title: bookDetails.title,
+                              author: bookDetails.author,
+                              coverId: bookDetails.coverId,
+                              olid: bookDetails.olid,
+                            ),
+                          ),
+                        );
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Failed to load book details')),
+                        );
+                      }
+                    },
+                    child: BookCard(
+                      title: book.title,
+                      author: book.author,
+                      coverId: book.coverId,
+                      bookKey: book.key,
+                      olid: book.olid,
+                    ),
                   );
                 },
               ),
