@@ -43,14 +43,12 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
   }
 
   Future<void> _fetchBookDetails(String olidOrKey) async {
-    // Determine if the ID is for a book or a work
-    final isWork = olidOrKey.startsWith('/works/');
-    final sanitizedId = isWork
+    // Sanitize the OLID or key to ensure it is valid
+    final sanitizedId = olidOrKey.startsWith('/works/')
         ? olidOrKey.replaceFirst('/works/', '')
-        : olidOrKey.replaceFirst('/books/', '');
+        : olidOrKey;
 
-    final url = Uri.parse(
-        'https://openlibrary.org/${isWork ? 'works' : 'books'}/$sanitizedId.json'); // Correct URL structure
+    final url = Uri.parse('https://openlibrary.org/books/$sanitizedId.json'); // Use the sanitized ID
     try {
       final response = await http.get(url);
       if (response.statusCode == 200) {
@@ -70,12 +68,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
           if (data['authors'] != null && data['authors'] is List) {
             final authors = data['authors'] as List;
             widget.author = authors.isNotEmpty
-                ? authors.map((author) {
-                    if (author is Map && author.containsKey('name')) {
-                      return author['name'];
-                    }
-                    return 'Unknown Author';
-                  }).join(', ')
+                ? authors.map((author) => author['name']).join(', ')
                 : 'Unknown Author';
           } else {
             widget.author = 'Unknown Author';
@@ -101,14 +94,7 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
       return;
     }
 
-    // Determine if the ID is for a book or a work
-    final isWork = widget.olid!.startsWith('/works/');
-    final sanitizedId = isWork
-        ? widget.olid!.replaceFirst('/works/', '')
-        : widget.olid!.replaceFirst('/books/', '');
-
-    final bookUrl = Uri.parse(
-        'https://openlibrary.org/${isWork ? 'works' : 'books'}/$sanitizedId'); // Correct URL structure
+    final bookUrl = Uri.parse('https://openlibrary.org/books/${widget.olid}');
     print("Attempting to launch URL: $bookUrl");
 
     try {
@@ -129,12 +115,8 @@ class _BookDetailsScreenState extends State<BookDetailsScreen> {
     final savedBooksProvider = Provider.of<SavedBooksProvider>(context);
     final isSaved = savedBooksProvider.savedBooks.any((book) => book.olid == widget.olid);
 
-    final isWork = widget.olid != null && widget.olid!.startsWith('/works/');
-    final sanitizedId = isWork
-        ? widget.olid!.replaceFirst('/works/', '')
-        : widget.olid!.replaceFirst('/books/', '');
     final bookUrl = widget.olid != null
-        ? 'https://openlibrary.org/${isWork ? 'works' : 'books'}/$sanitizedId'
+        ? 'https://openlibrary.org/books/${widget.olid}'
         : null;
 
     return Scaffold(

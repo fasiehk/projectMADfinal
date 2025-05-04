@@ -3,7 +3,11 @@ import 'package:finalwe/services/book_service.dart';
 import 'package:finalwe/widgets/book_card.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:finalwe/screens/book_details_screen.dart'; // Import BookDetailsScreen
+import 'package:finalwe/screens/book_details_screen.dart';
+import 'package:finalwe/screens/science_fiction_screen.dart';
+import 'package:finalwe/screens/romance_screen.dart';
+import 'package:finalwe/screens/history_screen.dart';
+import 'package:finalwe/screens/children_books_screen.dart';
 
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
@@ -16,6 +20,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
   final TextEditingController _searchController = TextEditingController();
   List<Book> _books = [];
   bool _isLoading = false;
+
+  final List<Map<String, dynamic>> _categories = [
+    {'title': 'Science Fiction', 'image': 'assets/science_fiction.jpg', 'screen': const ScienceFictionScreen()},
+    {'title': 'Romance', 'image': 'assets/romance.jpg', 'screen': const RomanceScreen()},
+    {'title': 'History', 'image': 'assets/history.jpg', 'screen': const HistoryScreen()},
+    {'title': "Children's Books", 'image': 'assets/children_books.jpg', 'screen': const ChildrenBooksScreen()},
+  ];
 
   @override
   void initState() {
@@ -101,6 +112,70 @@ class _ExploreScreenState extends State<ExploreScreen> {
       ),
       body: Column(
         children: [
+          // Categories Section
+          SizedBox(
+            height: 150,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              itemCount: _categories.length,
+              itemBuilder: (context, index) {
+                final category = _categories[index];
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => category['screen'],
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 120,
+                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      image: DecorationImage(
+                        image: AssetImage(category['image']!),
+                        fit: BoxFit.cover,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 6,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Container(
+                      alignment: Alignment.bottomCenter,
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.black.withOpacity(0.6),
+                            Colors.transparent,
+                          ],
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                        ),
+                      ),
+                      child: Text(
+                        category['title']!,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          // Search and Book List Section
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(

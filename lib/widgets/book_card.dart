@@ -29,7 +29,16 @@ class BookCard extends StatefulWidget {
 }
 
 class _BookCardState extends State<BookCard> {
+  static bool _isNavigating = false; // Global flag to prevent multiple navigations
+  bool _isLoading = false;
+
   Future<void> _navigateToDetails(BuildContext context) async {
+    if (_isNavigating) return; // Prevent multiple navigations
+    setState(() {
+      _isLoading = true;
+      _isNavigating = true;
+    });
+
     try {
       // Fetch book details directly from the OpenLibrary API
       final bookDetails = await _fetchBookDetails(widget.bookKey);
@@ -55,6 +64,11 @@ class _BookCardState extends State<BookCard> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
+    } finally {
+      setState(() {
+        _isLoading = false;
+        _isNavigating = false; // Reset the flag after navigation
+      });
     }
   }
 
@@ -94,49 +108,73 @@ class _BookCardState extends State<BookCard> {
 
     return GestureDetector(
       onTap: () => _navigateToDetails(context),
-      child: Card(
-        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-        child: ListTile(
-          leading: widget.coverId != null
-              ? Image.network(
-                  'https://covers.openlibrary.org/b/id/${widget.coverId}-M.jpg',
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.cover,
-                )
-              : const Icon(Icons.book, size: 50),
-          title: Text(widget.title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          subtitle: Text(widget.author),
-          trailing: IconButton(
-            icon: Icon(isSaved ? Icons.bookmark_remove : Icons.bookmark_add),
-            onPressed: () async {
-              try {
-                if (isSaved) {
-                  await savedBooksProvider.removeBook(widget.bookKey);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Book removed from saved list')),
-                  );
-                } else {
-                  final book = Book(
-                    title: widget.title,
-                    author: widget.author,
-                    key: widget.bookKey,
-                    coverId: widget.coverId,
-                    olid: widget.olid,
-                  );
-                  await savedBooksProvider.saveBook(book);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Book saved successfully')),
-                  );
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e')),
-                );
-              }
-            },
+      child: Stack(
+        children: [
+          Card(
+            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              splashColor: Colors.deepPurple.withOpacity(0.1), // Reduced ripple effect opacity
+              onTap: () => _navigateToDetails(context),
+              child: ListTile(
+                leading: widget.coverId != null
+                    ? Image.network(
+                        'https://covers.openlibrary.org/b/id/${widget.coverId}-M.jpg',
+                        width: 50,
+                        height: 50,
+                        fit: BoxFit.cover,
+                      )
+                    : const Icon(Icons.book, size: 50),
+                title: Text(widget.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(widget.author),
+                trailing: IconButton(
+                  icon: Icon(isSaved ? Icons.bookmark_remove : Icons.bookmark_add),
+                  onPressed: () async {
+                    try {
+                      if (isSaved) {
+                        await savedBooksProvider.removeBook(widget.bookKey);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Book removed from saved list')),
+                        );
+                      } else {
+                        final book = Book(
+                          title: widget.title,
+                          author: widget.author,
+                          key: widget.bookKey,
+                          coverId: widget.coverId,
+                          olid: widget.olid,
+                        );
+                        await savedBooksProvider.saveBook(book);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Book saved successfully')),
+                        );
+                      }
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error: $e')),
+                      );
+                    }
+                  },
+                ),
+              ),
+            ),
           ),
-        ),
+          if (_isLoading)
+            Positioned.fill(
+              child: Container(
+                color: Colors.black.withOpacity(0.5),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
