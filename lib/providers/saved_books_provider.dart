@@ -89,7 +89,7 @@ class SavedBooksProvider with ChangeNotifier {
     }
 
     try {
-      // Sanitize the key to use only the last segment as the document ID
+      // Extract the last segment of the key to use as the document ID
       final sanitizedKey = bookKey.split('/').last;
 
       print("Removing book with sanitized key: $sanitizedKey for user: ${user.uid}");
