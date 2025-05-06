@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart'; // Import Firestore for fetching username
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart'; // Import Firebase Storage
+import 'package:image_picker/image_picker.dart'; // Import Image Picker
+import 'dart:io';
 import 'login_page.dart';
 import 'screens/update_password_screen.dart';
-import 'terms_and_conditions_screen.dart'; // Import Terms and Conditions screen
-import 'about_us_screen.dart'; // Import About Us screen
+import 'terms_and_conditions_screen.dart';
+import 'about_us_screen.dart';
 import 'package:provider/provider.dart';
-import 'providers/saved_books_provider.dart'; // Import SavedBooksProvider
+import 'providers/saved_books_provider.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,15 +21,17 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseStorage _storage = FirebaseStorage.instance;
   String? _username;
+  String? _photoURL;
 
   @override
   void initState() {
     super.initState();
-    _fetchUsername();
+    _fetchUserProfile();
   }
 
-  Future<void> _fetchUsername() async {
+  Future<void> _fetchUserProfile() async {
     final user = _auth.currentUser;
     if (user == null) return;
 
@@ -34,12 +39,50 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final doc = await _firestore.collection('users').doc(user.uid).get();
       setState(() {
         _username = doc.data()?['username'] ?? 'User';
+        _photoURL = doc.data()?['photoURL'];
       });
     } catch (e) {
-      print("Error fetching username: $e");
+      print("Error fetching user profile: $e");
       setState(() {
         _username = 'User';
       });
+    }
+  }
+
+  Future<void> _updateProfilePicture() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    try {
+      // Pick an image from the gallery
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+      if (pickedFile == null) return;
+
+      final File imageFile = File(pickedFile.path);
+
+      // Upload the image to Firebase Storage
+      final storageRef = _storage.ref().child('profile_pictures/${user.uid}.jpg');
+      final uploadTask = await storageRef.putFile(imageFile);
+      final downloadURL = await uploadTask.ref.getDownloadURL();
+
+      // Update the Firestore document with the new photoURL
+      await _firestore.collection('users').doc(user.uid).update({'photoURL': downloadURL});
+
+      // Update the UI
+      setState(() {
+        _photoURL = downloadURL;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile picture updated successfully')),
+      );
+    } catch (e) {
+      print("Error updating profile picture: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
     }
   }
 
@@ -150,29 +193,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Column(
           children: [
             const SizedBox(height: 20),
-            // Profile Picture
-            Center(
-              child: CircleAvatar(
-                radius: 50,
-                backgroundColor: Colors.deepPurple.shade100,
-                child: user?.photoURL != null
-                    ? ClipOval(
-                        child: Image.network(
-                          user!.photoURL!,
-                          width: 100,
-                          height: 100,
-                          fit: BoxFit.cover,
-                        ),
-                      )
-                    : Text(
-                        (_username ?? 'U')[0].toUpperCase(),
-                        style: const TextStyle(
-                          fontSize: 40,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.deepPurple,
-                        ),
-                      ),
-              ),
+            // Profile Picture with Edit Icon
+            Stack(
+              children: [
+                CircleAvatar(
+                  radius: 50,
+                  backgroundColor: Colors.deepPurple.shade100,
+                  backgroundImage: _photoURL != null ? NetworkImage(_photoURL!) : null,
+                  child: _photoURL == null
+                      ? Text(
+                          (_username ?? 'U')[0].toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 40,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple,
+                          ),
+                        )
+                      : null,
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.deepPurple),
+                    onPressed: _updateProfilePicture,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 10),
             // User Name
