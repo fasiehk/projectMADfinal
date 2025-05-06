@@ -86,6 +86,81 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _deleteProfilePicture() async {
+    final user = _auth.currentUser;
+    if (user == null || _photoURL == null) return;
+
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirm Deletion'),
+        content: const Text('Are you sure you want to delete your profile picture?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+
+    try {
+      // Delete the image from Firebase Storage
+      final storageRef = _storage.refFromURL(_photoURL!);
+      await storageRef.delete();
+
+      // Remove the photoURL field from Firestore
+      await _firestore.collection('users').doc(user.uid).update({'photoURL': FieldValue.delete()});
+
+      // Update the UI
+      setState(() {
+        _photoURL = null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile picture deleted successfully')),
+      );
+    } catch (e) {
+      print("Error deleting profile picture: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
+  }
+
+  void _showProfilePictureOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.edit, color: Colors.deepPurple),
+            title: const Text('Update Profile Picture'),
+            onTap: () {
+              Navigator.pop(context);
+              _updateProfilePicture();
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text('Delete Profile Picture'),
+            onTap: () {
+              Navigator.pop(context);
+              _deleteProfilePicture();
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _logout(BuildContext context) async {
     final shouldLogout = await showDialog<bool>(
       context: context,
@@ -195,9 +270,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 20),
             // Profile Picture with Edit Icon
             Stack(
+              alignment: Alignment.center,
               children: [
                 CircleAvatar(
-                  radius: 50,
+                  radius: 60,
                   backgroundColor: Colors.deepPurple.shade100,
                   backgroundImage: _photoURL != null ? NetworkImage(_photoURL!) : null,
                   child: _photoURL == null
@@ -212,11 +288,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       : null,
                 ),
                 Positioned(
-                  bottom: 0,
-                  right: 0,
+                  bottom: -10,
                   child: IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.deepPurple),
-                    onPressed: _updateProfilePicture,
+                    icon: const Icon(Icons.edit, color: Colors.deepPurple, size: 28),
+                    onPressed: _showProfilePictureOptions,
                   ),
                 ),
               ],

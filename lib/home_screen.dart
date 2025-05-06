@@ -18,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   int _currentIndex = 0;
   String? _username;
+  String? _photoURL;
 
   final List<Widget> _pages = [
     const ExploreScreen(),
@@ -28,11 +29,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _fetchUsername();
+    _fetchUserProfile();
     _showWelcomeToast(); // Show welcome toast when the homepage is loaded
   }
 
-  Future<void> _fetchUsername() async {
+  Future<void> _fetchUserProfile() async {
     final user = _auth.currentUser;
     if (user == null) return;
 
@@ -40,9 +41,10 @@ class _HomeScreenState extends State<HomeScreen> {
       final doc = await _firestore.collection('users').doc(user.uid).get();
       setState(() {
         _username = doc.data()?['username'] ?? 'User'; // Fetch username from Firestore
+        _photoURL = doc.data()?['photoURL']; // Fetch profile picture URL from Firestore
       });
     } catch (e) {
-      print("Error fetching username: $e");
+      print("Error fetching user profile: $e");
       setState(() {
         _username = 'User'; // Fallback to "User" if fetching fails
       });
@@ -124,10 +126,13 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               currentAccountPicture: CircleAvatar(
                 backgroundColor: Colors.white,
-                child: Text(
-                  (_username ?? "U")[0].toUpperCase(),
-                  style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.deepPurple),
-                ),
+                backgroundImage: _photoURL != null ? NetworkImage(_photoURL!) : null,
+                child: _photoURL == null
+                    ? Text(
+                        (_username ?? "U")[0].toUpperCase(),
+                        style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: Colors.deepPurple),
+                      )
+                    : null,
               ),
             ),
             ListTile(
