@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/saved_books_provider.dart';
 import '../widgets/book_card.dart';
+import 'offline_books_screen.dart'; // Import OfflineBooksScreen
 
 class SavedBooksScreen extends StatefulWidget {
   const SavedBooksScreen({super.key});
@@ -43,12 +44,12 @@ class _SavedBooksScreenState extends State<SavedBooksScreen> {
     final savedBooksProvider = Provider.of<SavedBooksProvider>(context);
 
     if (_isLoading) {
-      return  Scaffold(
+      return Scaffold(
         appBar: AppBar(
-          title: Text('Saved Books'),
+          title: const Text('Saved Books'),
           backgroundColor: Colors.deepPurple,
         ),
-        body: Center(child: CircularProgressIndicator()),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -73,6 +74,31 @@ class _SavedBooksScreenState extends State<SavedBooksScreen> {
       appBar: AppBar(
         title: const Text('Saved Books'),
         backgroundColor: Colors.deepPurple,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16.0),
+            child: ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const OfflineBooksScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.deepPurple,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              ),
+              icon: const Icon(Icons.download, size: 20),
+              label: const Text(
+                'Offline Books',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+        ],
       ),
       body: savedBooks.isEmpty
           ? const Center(
